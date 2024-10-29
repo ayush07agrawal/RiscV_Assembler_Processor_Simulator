@@ -1,0 +1,208 @@
+// Question 1
+lui s0, 0x00064
+addi s0, s0, 0x14C
+lui s1, 0x00064
+addi s1, s1, 0x0DF
+add s2, s0, s1
+
+
+// Question 2
+
+
+// Question 3
+addi a0, zero, 0xF0
+addi a1, zero, 0xD1
+and a2, a0, a1
+sw a2, 0x0(zero)
+or a2, a0, a1
+sw a2, 0x04(zero)
+xor a2, a0, a1
+sw a2, 0x08(zero)
+xori a2, a2, 0xFFF
+sw a2, 0x0C(zero)
+slli a2, a2, 2
+sw a2, 0x10(zero)
+srli a2, a2, 3
+sw a2, 0x14(zero)
+srai a2, a2, 4
+sw a2, 0x18(zero)
+
+// Question 4
+lui a1, 0x00010
+addi a1, a1, 0xFFF
+addi a0, a0, 0
+addi a2, zero, 1
+loop:
+    andi a3, a1, 1
+    add a0, a0, a3
+    srli a1, a1, 1
+    bge a1, a2, loop
+# a0 holds the number of 1's
+
+
+// Question 5
+addi a0, zero, 0xF
+add a1, zero, zero
+loop:
+    add a1, a1, a0
+    addi a0, a0, -1
+    bge a0, zero, loop
+
+
+// Question 6
+# s0 stores the number and s1 stores the count
+addi s0, zero, 0xAA
+addi s1, zero, 0
+
+addi t0, zero, 1
+addi t1, zero, 8
+add t3, zero, s0
+
+for:
+andi t4, t3, 1
+srli t3, t3, 1
+slli t4, t4, 7
+or t3, t3, t4
+bne s0, t3, else
+addi s1, s1, 1
+else:
+addi t0, t0, 1
+bne t0, t1, for
+
+
+// Question 7
+main:
+addi s0, zero, 10
+addi t0, zero, 0
+addi a4, zero, 1
+addi s1, s0, -1
+for:
+sub a0, zero, t0
+add a0, a0, s0
+jal ra, fact
+addi t0, t0, 1
+bne t0, s1, for
+bne s0, zero, done
+fact:
+add t1, zero, a0
+addi t1, t1, -1
+addi t2, zero, 0
+addi t3, a4, 0
+while:
+add a4, a4, t3
+addi t2, t2, 1
+bne t2, t1, while
+jalr ra, ra, 0 
+done:
+
+
+
+// Question 8
+addi s0, zero, 0
+addi t0, zero, 0
+addi t1, zero, 5
+for:
+add a0, zero, t0
+slli a0, a0, 2
+add a0, a0, s0
+add a3, a0, zero
+bne t0, a3, next
+addi a3, a3, 1
+next:
+sw a3, 0(a0)
+addi t0, t0, 1
+bne t0, t1, for
+
+addi a1, zero, 0
+addi a2, zero, 0
+addi t0, zero, 0
+addi t1, zero, 5
+for1:
+add a0, zero, t0
+slli a0, a0, 2
+add a0, a0, s0
+lw t2, 0(a0)
+andi t2, t2, 1
+beq t2, zero, else
+addi a1, a1, 1
+jal ra, done
+else:
+addi a2, a2, 1
+done:
+addi t0, t0, 1
+bne t0, t1, for1
+
+
+
+// Question 10
+// a
+addi s0, zero, 0
+
+addi t0, zero, 0
+addi t1, zero, 7
+addi t2, zero, 6
+for:
+add a0, zero, t0
+slli a0, a0, 2
+add a0, a0, s0
+addi a1, t0, 61
+bne t0, t2, else
+addi a1, zero, 0
+else:
+sw a1, 0(a0)
+addi t0, t0, 1
+bne t0, t1, for
+
+
+addi t0, zero, 0
+addi t1, zero, 7
+addi a2, zero, 0
+for1:
+add a0, zero, t0
+slli a0, a0, 2
+add a0, a0, s0
+lw a1, 0(a0)
+beq a1, zero, done
+addi a2, a2, 1
+addi t0, t0, 1
+bne t0, t1, for1
+done:
+
+// b
+addi s0, zero, 0
+
+addi t0, zero, 0
+addi t1, zero, 7
+addi t2, zero, 6
+for:
+add a0, zero, t0
+slli a0, a0, 2
+add a0, a0, s0
+addi a1, t0, 97
+bne t0, t2, else
+addi a1, zero, 0
+else:
+sw a1, 0(a0)
+addi t0, t0, 1
+bne t0, t1, for
+
+
+addi t0, zero, 0
+addi t1, zero, 7
+addi t3, zero, 97
+addi t4, zero, 123
+for1:
+add a0, zero, t0
+slli a0, a0, 2
+add a0, a0, s0
+lw a1, 0(a0)
+blt a1, t3, continue
+bge a1, t4, continue
+addi a1, a1, -32
+sw a1, 0(a0)
+continue:
+beq a1, zero, done
+addi t0, t0, 1
+bne t0, t1, for1
+done:
+
