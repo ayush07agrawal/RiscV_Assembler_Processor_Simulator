@@ -269,7 +269,7 @@ int main()
     cout << "Instructions Count = " << Ins_Cnt << endl;
     cout << "IPC = " << ((1.0 * Ins_Cnt) / cycleCnt) << endl;
 
-    cout << 'Registers Values:' << endl;
+    cout << "Registers Values:" << endl;
     Regs->Print_Vals();
     cout << endl;
     cout << "Memory Values:" << endl;
@@ -365,7 +365,7 @@ int Utility::AluController(string Func3_30thBit, string AluOp)
     }
     if (AluOp == "101")
     {
-        return 10; //  U Type
+        return 10; // U Type
     }
     if (AluOp == "011")
     {
@@ -633,7 +633,7 @@ void DataMemory::Print_Vals()
 {
     for (int i = 0; i < MEM_SIZE; i++)
     {
-        cout << "Mem_" << i << " -> " << _utility->signExtend(this->Memory_Val[i]) << endl;
+        cout << "Mem_" << i << "-> " << _utility->signExtend(this->Memory_Val[i]) << endl;
     }
     cout << endl;
 }
