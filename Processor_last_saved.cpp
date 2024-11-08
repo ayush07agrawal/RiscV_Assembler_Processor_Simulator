@@ -348,8 +348,6 @@ string Utility::Controller(string OpCode)
     // else if (OpCode == "1100111") return "10011001000"; JALR
     else if (OpCode == "1101111")
         return "10001001000"; // JAL
-    else if (OpCode == "1101111")
-        return "10001001000";
     // U Type (Check)
     else if (OpCode == "0110111")
         return "10101000000";
