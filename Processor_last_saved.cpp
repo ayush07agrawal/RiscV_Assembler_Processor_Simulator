@@ -1,830 +1,818 @@
 #include <bits/stdc++.h>
+#include <fstream>
 using namespace std;
 
-// Size of Memory
-#define MEM_SIZE 32
-
-// Pipeline Registers ----------------------------------------------------------
-
-class _PC
-{
-public:
-    int TPC;
-    bool stalled;
-    bool valid;
-    _PC()
-    {
-        this->TPC = 0;
-        this->stalled = false;
-        this->valid = true;
-    }
-    void print()
-    {
-        cout << "PC" << endl;
-        cout << "TPC: " << TPC << endl;
-        cout << "Stalled: " << stalled << endl;
-        cout << "Valid: " << valid << endl;
-    }
-};
-
-class _IFID
-{
-public:
-    int DPC;
-    int NPC;
-    string IR;
-    bool stalled;
-    bool valid;
-
-    _IFID()
-    {
-        this->DPC = 0;
-        this->NPC = 0;
-        this->IR = "";
-        this->stalled = false;
-        this->valid = true;
-    }
-
-    void print()
-    {
-        cout << "IFID" << endl;
-        cout << "DPC: " << DPC << endl;
-        cout << "NPC: " << NPC << endl;
-        cout << "IR: " << IR << endl;
-        cout << "Stalled: " << stalled << endl;
-        cout << "Valid: " << valid << endl;
-    }
-};
-
-class _IDEX
-{
-public:
-    int JPC;
-    int DPC;
-    string FUNC3_30thBit;
-    string IMM_Br;
-    string IMM_Reg;
-    string CW;
-    string RS1;
-    string RS2;
-    string RD;
-    bool stalled;
-    bool valid;
-
-    _IDEX()
-    {
-        this->JPC = 0;
-        this->DPC = 0;
-        this->FUNC3_30thBit = "";
-        this->IMM_Br = "";
-        this->IMM_Reg = "";
-        this->CW = "";
-        this->RS1 = "";
-        this->RS2 = "";
-        this->RD = "";
-        this->stalled = false;
-        this->valid = true;
-    }
-
-    void print()
-    {
-        cout << "IDEX" << endl;
-        cout << "JPC: " << JPC << endl;
-        cout << "DPC: " << DPC << endl;
-        cout << "Func3_30thBit: " << FUNC3_30thBit << endl;
-        cout << "Imm_Br: " << IMM_Br << endl;
-        cout << "Imm_Reg: " << IMM_Reg << endl;
-        cout << "CW: " << CW << endl;
-        cout << "RS1: " << RS1 << endl;
-        cout << "RS2: " << RS2 << endl;
-        cout << "RD: " << RD << endl;
-        cout << "Stalled: " << stalled << endl;
-        cout << "Valid: " << valid << endl;
-    }
-};
-
-class _EXMO
-{
-public:
-    string CW;
-    string RS2;
-    string RD;
-    string ALU_OUT;
-    bool stalled;
-    bool valid;
-
-    _EXMO()
-    {
-        this->CW = "";
-        this->RS2 = "";
-        this->RD = "";
-        this->ALU_OUT = "";
-        this->stalled = false;
-        this->valid = true;
-    }
-
-    void print()
-    {
-        cout << "EXMO" << endl;
-        cout << "CW: " << CW << endl;
-        cout << "RS2: " << RS2 << endl;
-        cout << "RD: " << RD << endl;
-        cout << "ALU_OUT: " << ALU_OUT << endl;
-        cout << "Stalled: " << stalled << endl;
-        cout << "Valid: " << valid << endl;
-    }
-};
-
-class _MOWB
-{
-public:
-    string CW;
-    string LD_OUT;
-    string RD;
-    string ALU_OUT;
-    bool stalled;
-    bool valid;
-
-    _MOWB()
-    {
-        this->CW = "";
-        this->LD_OUT = "";
-        this->RD = "";
-        this->ALU_OUT = "";
-        this->stalled = false;
-        this->valid = true;
-    }
-
-    void print()
-    {
-        cout << "MOWB" << endl;
-        cout << "CW: " << CW << endl;
-        cout << "LD_OUT: " << LD_OUT << endl;
-        cout << "RD: " << RD << endl;
-        cout << "ALU_OUT: " << ALU_OUT << endl;
-        cout << "Stalled: " << stalled << endl;
-        cout << "Valid: " << valid << endl;
-    }
-};
-
-// Supporting classes ----------------------------------------------------------
-
+// IS = Instruction_Set
 class Utility
 {
+private:
+    map<char, string> char_to_binary; // changed
 public:
-    string add(string a, string b);
-    int shiftLeft(string s);
-    int signExtend(string s);
-    string Controller(string OpCode);
-    int AluController(string Func3_30thBit, string AluOp);
-    string AluUnit(int AluSelect, string RS1, string RS2);
-    int safe_stoi(string s);
+    Utility(); // changed
+    string to_binary_21(string s);
+    string to_binary_20(string s);
+    string to_binary_13(string s);
+    string to_binary_12(string s);
+    string to_binary_5(string s);
+    string hex_to_binary(string s, int len); // changed
+};
+
+class Func_to_Instruction_Type
+{
+private:
+    map<string, string> Func_to_Instruction;
+
+public:
+    Func_to_Instruction_Type();
+    string get_IS_Type(string s);
 };
 
 class Registers
 {
-    vector<string> Register_Val;
-    vector<int> Reg_Curr_Writing_Cnt;
+private:
+    map<string, string> reg_to_binary;
 
 public:
     Registers();
-    int check_Reg(string s);
-    string Read_Reg_Value(string s);
-    void Write_Reg_Value(string s, string val);
-    void Lock_Reg_Curr_Writing_Cnt(string s);
-    void Release_Reg_Curr_Writing_Cnt(string s);
-    void Print_Vals();
-    int safe_stoi(string s);
+    string getRegister(string s);
 };
 
-class DataMemory
+class R_Type : private Registers
 {
-    vector<string> Memory_Val;
+private:
+    string OpCode;
+    map<string, string> Func3;
+    map<string, string> Func7;
 
 public:
-    DataMemory();
-    string Read_Mem_Value(string s);
-    void Write_Mem_Value(string s, string val);
-    void Print_Vals();
-    int safe_stoi(string s);
+    R_Type();
+    string get_Binary(string s, string func);
+    string getOpCode();
+    string getFunc3(string func);
+    string getFunc7(string func);
 };
 
-// Stages ----------------------------------------------------------------------
-
-class Pipeline : private Utility, private DataMemory, private Registers
+class I_Type : private Registers, Utility
 {
+private:
+    string OpCode;
+    map<string, string> Func3;
+
 public:
-    void Reg_Write(_MOWB *MOWB, Registers *Regs);
-    void Mem_Access(_EXMO *EXMO, _MOWB *MOWB, DataMemory *Memory);
-    void Ins_Exe(_IFID *IFID, _IDEX *IDEX, _EXMO *EXMO, _PC *PC);
-    void Ins_Decode(_IFID *IFID, _IDEX *IDEX, Registers *Regs);
-    void Fetch(_PC *PC, _IFID *IFID, vector<string> &Instructions);
+    I_Type();
+    string get_Binary(string s, string func);
+    string getOpCode();
+    string getFunc3(string func);
+};
+
+class Load_Type : private Registers, Utility
+{
+private:
+    string OpCode;
+    map<string, string> Func3;
+
+public:
+    Load_Type();
+    string get_Binary(string s, string func);
+    string getOpCode();
+    string getFunc3(string func);
+};
+
+class B_Type : private Registers, Utility
+{
+private:
+    string OpCode;
+    map<string, string> Func3;
+
+public:
+    B_Type();
+    string get_Binary(string s, string func);
+    string getOpCode();
+    string getFunc3(string func);
+};
+
+class J_Type : private Registers, Utility
+{
+private:
+    string OpCode;
+
+public:
+    J_Type();
+    string get_Binary(string s, string func);
+    string getOpCode();
+};
+
+class U_Type : private Registers, Utility
+{
+private:
+    string OpCode;
+
+public:
+    U_Type();
+    string get_Binary(string s, string func);
+    string getOpCode();
+};
+
+class S_Type : private Registers, Utility
+{
+private:
+    string OpCode;
+    map<string, string> Func3;
+
+public:
+    S_Type();
+    string get_Binary(string s, string func);
+    string getFunc3(string func);
+    string getOpCode();
 };
 
 int main()
 {
-    // Assuming that we receive all the instructions in this vector of strings
-    vector<string> Instructions = {
+    ifstream file1("Input.txt");
+    ofstream file2("Output.txt");
+    if (file2.is_open() == false)
+    {
+        cout << "Error Opening Output File.\n";
+        return 0;
+    }
 
+    Func_to_Instruction_Type f_to_IS_Converter;
+    R_Type R_Type_obj;
+    I_Type I_Type_obj;
+    B_Type B_Type_obj;
+    J_Type J_Type_obj;
+    U_Type U_Type_obj;
+    S_Type S_Type_obj;
+    Load_Type Load_Type_obj;
+
+    string str;
+    while (getline(file1, str))
+    {
+        if (str.length() == 0)
+            continue; // changed
+        for (int i = 0; i < str.length(); i++)
+            str[i] = tolower(str[i]);
+        string func = str.substr(0, str.find_first_of(" "));
+        string type = f_to_IS_Converter.get_IS_Type(func);
+
+        if (type == "R_Type")
+        {
+            cout << R_Type_obj.get_Binary(str, func) << endl;
+        }
+        else if (type == "I_Type")
+        {
+            cout << I_Type_obj.get_Binary(str, func) << endl;
+        }
+        else if (type == "Load_Type")
+        {
+            cout << Load_Type_obj.get_Binary(str, func) << endl;
+        }
+        else if (type == "B_Type")
+        {
+            cout << B_Type_obj.get_Binary(str, func) << endl;
+        }
+        else if (type == "J_Type")
+        {
+            cout << J_Type_obj.get_Binary(str, func) << endl;
+        }
+        else if (type == "U_Type")
+        {
+            cout << U_Type_obj.get_Binary(str, func) << endl;
+        }
+        else if (type == "S_Type")
+        {
+            cout << S_Type_obj.get_Binary(str, func) << endl;
+        }
+    }
+}
+
+// Utility -------------------------------------------------
+
+// changed
+Utility::Utility()
+{
+    char_to_binary = {
+        {'0', "0000"},
+        {'1', "0001"},
+        {'2', "0010"},
+        {'3', "0011"},
+        {'4', "0100"},
+        {'5', "0101"},
+        {'6', "0110"},
+        {'7', "0111"},
+        {'8', "1000"},
+        {'9', "1001"},
+        {'a', "1010"},
+        {'b', "1011"},
+        {'c', "1100"},
+        {'d', "1101"},
+        {'e', "1110"},
+        {'f', "1111"},
     };
-
-    Registers *Regs = new Registers();
-    DataMemory *Memory = new DataMemory();
-    _PC *PC = new _PC();
-    _IFID *IFID = new _IFID();
-    _IDEX *IDEX = new _IDEX();
-    _EXMO *EXMO = new _EXMO();
-    _MOWB *MOWB = new _MOWB();
-    Pipeline *pipe1 = new Pipeline();
-    bool stop = false;
-
-    int cycleCnt = 1;
-
-    while (!stop)
-    {
-        pipe1->Reg_Write(MOWB, Regs);
-        pipe1->Mem_Access(EXMO, MOWB, Memory);
-        pipe1->Ins_Exe(IFID, IDEX, EXMO, PC);
-        pipe1->Ins_Decode(IFID, IDEX, Regs);
-        pipe1->Fetch(PC, IFID, Instructions);
-
-        if ((PC->TPC / 4) >= Instructions.size())
-        {
-            PC->valid = false;
-        }
-        else
-        {
-            PC->valid = true;
-        }
-
-        stop = !(PC->valid || IFID->valid || IDEX->valid || EXMO->valid || MOWB->valid);
-
-        cycleCnt++;
-    }
-
-    cout << "Cycle Count = " << cycleCnt << endl;
-
-    // cout << "Registers:" << endl;
-    // Regs->Print_Vals();
-    // cout << endl;
-    // cout << "Memory: " << endl;
-    // Memory->Print_Vals();
-    // cout << endl;
-
-    return 0;
 }
 
-// Utility ---------------------------------------------------------------------
-string Utility::add(string a, string b)
+string Utility::to_binary_21(string s)
 {
-    int a_int = safe_stoi(a);
-    int b_int = safe_stoi(b);
-    int sum = a_int + b_int;
-    string sum_str = bitset<32>(sum).to_string();
-    return sum_str.substr(sum_str.length() - 32, sum_str.length());
+    int imm = stoi(s);
+    string binary = bitset<21>(imm).to_string();
+    return binary.substr(binary.length() - 21, binary.length());
 }
 
-int Utility::shiftLeft(string s)
+string Utility::to_binary_20(string s)
 {
-    int a_int = safe_stoi(s);
-    return (a_int << 1);
+    int imm = stoi(s);
+    string binary = bitset<20>(imm).to_string();
+    return binary.substr(binary.length() - 20, binary.length());
 }
 
-int Utility::signExtend(string s)
+string Utility::to_binary_13(string s)
 {
-    char c = s[0];
-    while (s.length() < 32)
-    {
-        s = c + s;
-    }
-    int res = safe_stoi(s);
-    return res;
+    int imm = stoi(s);
+    string binary = bitset<13>(imm).to_string();
+    return binary.substr(binary.length() - 13, binary.length());
 }
 
-int Utility::safe_stoi(string s)
+string Utility::to_binary_12(string s)
 {
-    try
+    int imm = stoi(s);
+    string binary = bitset<12>(imm).to_string();
+    return binary.substr(binary.length() - 12, binary.length());
+}
+
+string Utility::to_binary_5(string s)
+{
+    int imm = stoi(s);
+    string binary = bitset<5>(imm).to_string();
+    return binary.substr(binary.length() - 5, binary.length());
+}
+
+// changed
+string Utility::hex_to_binary(string s, int len)
+{
+    string res = "";
+    for (int i = s.length() - 1; i >= 0; i--)
     {
-        int num = stoi(s, nullptr, 2);
-        return num;
+        res = char_to_binary[s[i]] + res;
     }
-    catch (const out_of_range &e)
+    while (len > res.length())
     {
-        cerr << "Out of range error in stoi for string: " << s << endl;
-        throw;
+        res = '0' + res;
+    }
+    int i = 0;
+    while (len < (res.length() - i))
+        i++;
+    return res.substr(i);
+}
+
+// Func_To_Instruction_Type ----------------------------------
+
+Func_to_Instruction_Type::Func_to_Instruction_Type()
+{
+    Func_to_Instruction = {
+        {"add", "R_Type"},
+        {"slt", "R_Type"},
+        {"sltu", "R_Type"},
+        {"and", "R_Type"},
+        {"or", "R_Type"},
+        {"xor", "R_Type"},
+        {"sll", "R_Type"},
+        {"srl", "R_Type"},
+        {"sub", "R_Type"},
+        {"sra", "R_Type"},
+        {"addi", "I_Type"},
+        {"andi", "I_Type"},
+        {"ori", "I_Type"},
+        {"xori", "I_Type"},
+        {"slli", "I_Type"},
+        {"srli", "I_Type"},
+        {"srai", "I_Type"},
+        {"lw", "Load_Type"},
+        {"lb", "Load_Type"},
+        {"lh", "Load_Type"},
+        {"ld", "Load_Type"},
+        {"lwu", "Load_Type"},
+        {"lhu", "Load_Type"},
+        {"lbu", "Load_Type"},
+        {"beq", "B_Type"},
+        {"bne", "B_Type"},
+        {"blt", "B_Type"},
+        {"bge", "B_Type"},
+        {"bltu", "B_Type"},
+        {"bgeu", "B_Type"},
+        {"jal", "J_Type"},
+        {"jalr", "J_Type"},
+        {"lui", "U_Type"},
+        {"auipc", "U_Type"},
+        {"sd", "S_Type"},
+        {"sw", "S_Type"},
+        {"sh", "S_Type"},
+        {"sb", "S_Type"},
+    };
+}
+
+string Func_to_Instruction_Type::get_IS_Type(string s)
+{
+    if (Func_to_Instruction.find(s) != Func_to_Instruction.end())
+    {
+        return Func_to_Instruction[s];
+    }
+    else
+    {
+        cout << "Error in obtaining IS" << __LINE__ << endl;
+        return NULL;
     }
 }
 
-string Utility::Controller(string OpCode)
-{
-    // AluOp2, AluOp1, AluOp0, RegRead, RegWrite, AluSrc, Branch, Jump, MemRead, MemWrite, Mem2Reg
-    // AluSrc == 1 (Reg Value)
-    // R Type
-    if (OpCode == "0110011")
-        return "00011100000";
-    // I Type
-    else if (OpCode == "0010011")
-        return "00111000000";
-    // Load Type
-    else if (OpCode == "0000011")
-        return "01011000101";
-    // B Type
-    else if (OpCode == "1100011")
-        return "01110110000";
-    // J Type (Check)
-    // else if(OpCode == "1100111") return "10011001000";
-    else if (OpCode == "1101111")
-        return "10001001000";
-    // U Type (Check)
-    else if (OpCode == "0110111")
-        return "10101000000";
-    // S Type
-    else if (OpCode == "0100011")
-        return "11010000010";
-}
-
-int Utility::AluController(string Func3_30thBit, string AluOp)
-{
-    // 1 - Add, 2 - Sub, 3 - And, 4 - Or, 5 - Xor, 6 - Sll, 7 - Srl, 8 - Sra, 9 - Set Less Than, 10 - Nothing
-    if (AluOp == "010" || AluOp == "110")
-        return 1; // Load and store
-    if (AluOp == "011" || AluOp == "101")
-        return 10; // Branch and U Type
-    if (AluOp == "100")
-    {
-        // Jump
-        if (Func3_30thBit == "")
-            return 10;
-        else
-            return 1;
-    }
-    if (AluOp == "000" || AluOp == "001")
-    {
-        // R and I Type
-        if (AluOp == "000" && Func3_30thBit == "0001")
-            return 2;
-        if (Func3_30thBit == "1011")
-            return 8;
-        if (Func3_30thBit == "0000")
-            return 1;
-        if (Func3_30thBit == "1110")
-            return 3;
-        if (Func3_30thBit == "1100")
-            return 4;
-        if (Func3_30thBit == "1000")
-            return 5;
-        if (Func3_30thBit == "0010")
-            return 6;
-        if (Func3_30thBit == "1010")
-            return 7;
-    }
-}
-
-string Utility::AluUnit(int AluSelect, string RS1, string RS2)
-{
-    int a = ((RS1.length() > 0) ? safe_stoi(RS1) : 0);
-    int b = ((RS2.length() > 0) ? safe_stoi(RS2) : 0);
-    int res = 0;
-    switch (AluSelect)
-    {
-    case 1:
-    {
-        res = a + b;
-        break;
-    }
-    case 2:
-    {
-        res = a - b;
-        break;
-    }
-    case 3:
-    {
-        res = a & b;
-        break;
-    }
-    case 4:
-    {
-        res = a | b;
-        break;
-    }
-    case 5:
-    {
-        res = a ^ b;
-        break;
-    }
-    case 6:
-    {
-        res = a << b;
-        break;
-    }
-    case 7:
-    {
-        res = a >> b;
-        break;
-    }
-    case 8:
-    { // SRA (check)
-        res = a >> b;
-        break;
-    }
-    case 9:
-    {
-        res = (a < b ? a : 0);
-        break;
-    }
-    case 10:
-    {
-        res = (a != 0 ? a : b);
-        break;
-    }
-    default:
-    {
-        cout << __LINE__ << "Invalid AluSelect..." << endl;
-        break;
-    }
-    }
-    string res_str = bitset<32>(res).to_string();
-    return res_str.substr(res_str.length() - 32, res_str.length());
-}
+// Registers -----------------------------------------------
 
 Registers::Registers()
 {
-    Register_Val.resize(32, "00000000000000000000000000000000");
-    Reg_Curr_Writing_Cnt.resize(32, 0);
+    reg_to_binary = {
+        {"x0", "00000"},
+        {"x1", "00001"},
+        {"x2", "00010"},
+        {"x3", "00011"},
+        {"x4", "00100"},
+        {"x5", "00101"},
+        {"x6", "00110"},
+        {"x7", "00111"},
+        {"x8", "01000"},
+        {"x9", "01001"},
+        {"x10", "01010"},
+        {"x11", "01011"},
+        {"x12", "01100"},
+        {"x13", "01101"},
+        {"x14", "01110"},
+        {"x15", "01111"},
+        {"x16", "10000"},
+        {"x17", "10001"},
+        {"x18", "10010"},
+        {"x19", "10011"},
+        {"x20", "10100"},
+        {"x21", "10101"},
+        {"x22", "10110"},
+        {"x23", "10111"},
+        {"x24", "11000"},
+        {"x25", "11001"},
+        {"x26", "11010"},
+        {"x27", "11011"},
+        {"x28", "11100"},
+        {"x29", "11101"},
+        {"x30", "11110"},
+        {"x31", "11111"},
+        {"zero", "00000"},
+        {"ra", "00001"},
+        {"sp", "00010"},
+        {"gp", "00011"},
+        {"tp", "00100"},
+        {"t0", "00101"},
+        {"t1", "00110"},
+        {"t2", "00111"},
+        {"s0", "01000"},
+        {"fp", "01000"},
+        {"s1", "01001"},
+        {"a0", "01010"},
+        {"a1", "01011"},
+        {"a2", "01100"},
+        {"a3", "01101"},
+        {"a4", "01110"},
+        {"a5", "01111"},
+        {"a6", "10000"},
+        {"a7", "10001"},
+        {"s2", "10010"},
+        {"s3", "10011"},
+        {"s4", "10100"},
+        {"s5", "10101"},
+        {"s6", "10110"},
+        {"s7", "10111"},
+        {"s8", "11000"},
+        {"s9", "11001"},
+        {"s10", "11010"},
+        {"s11", "11011"},
+        {"t3", "11100"},
+        {"t4", "11101"},
+        {"t5", "11110"},
+        {"t6", "11111"},
+    };
 }
 
-int Registers::check_Reg(string s)
+string Registers::getRegister(string s)
 {
-    if (s.length() != 5)
+    if (reg_to_binary.find(s) != reg_to_binary.end())
     {
-        cout << __LINE__ << "Invalid Register Value..." << endl;
-        return -1;
+        return reg_to_binary[s];
     }
-    int regInd = 0;
-    int i = 4;
-    while (i >= 0)
-    {
-        regInd += ((s[i] == '1') ? (1 << (4 - i)) : 0);
-        i--;
-    }
-    if (regInd >= 0 && regInd < 32)
-        return regInd;
-    cout << __LINE__ << "Invalid Register value..." << endl;
-    return -1;
+    else
+        return NULL;
 }
 
-string Registers::Read_Reg_Value(string s)
+// R_Type --------------------------------------------------
+
+R_Type::R_Type()
 {
-    int regIndex = check_Reg(s);
-    if ((regIndex != -1) && (Reg_Curr_Writing_Cnt[regIndex] == 0))
-        return Register_Val[regIndex];
+    OpCode = "0110011";
+    Func3 = {
+        {"add", "000"},
+        {"sub", "000"},
+        {"and", "111"},
+        {"or", "110"},
+        {"xor", "100"},
+        {"sll", "001"},
+        {"srl", "101"},
+        {"sra", "101"},
+    };
+    Func7 = {
+        {"add", "0000000"},
+        {"sub", "0100000"},
+        {"and", "0000000"},
+        {"or", "0000000"},
+        {"xor", "0000000"},
+        {"sll", "0000000"},
+        {"srl", "0000000"},
+        {"sra", "0100000"},
+    };
+}
+
+string R_Type::getOpCode() { return OpCode; }
+
+string R_Type::getFunc3(string func)
+{
+    if (Func3.find(func) != Func3.end())
+        return Func3[func];
     else
     {
-        return "WAIT"; // check
+        cout << "Error in obtaining Func3." << __LINE__ << endl;
+        return NULL;
     }
 }
 
-void Registers::Write_Reg_Value(string s, string val)
+string R_Type::getFunc7(string func)
 {
-    if (val.length() != 32)
-    {
-        cout << __LINE__ << "Invalid value to write in the Register. Data writing failed..." << endl;
-        return;
-    }
-    int regIndex = check_Reg(s);
-    if (regIndex != -1)
-        Register_Val[regIndex] = val;
+    if (Func7.find(func) != Func7.end())
+        return Func7[func];
     else
     {
-        cout << __LINE__ << " Invalid Register Number. Cannot Write..." << endl;
+        cout << "Error in obtaining Func7." << __LINE__ << endl;
+        return NULL;
     }
 }
 
-void Registers::Lock_Reg_Curr_Writing_Cnt(string s)
+string R_Type::get_Binary(string s, string func)
 {
-    int regIndex = check_Reg(s);
-    if (regIndex != -1)
-        Reg_Curr_Writing_Cnt[regIndex]++;
+    int i = s.find_first_of(" ");
+    string rd = "";
+    while (i < s.length() && s[i] == ' ')
+        i++;
+    while (i < s.length() && !(s[i] == ' ' || s[i] == ','))
+        rd += s[i++];
+    while (i < s.length() && (s[i] == ' ' || s[i] == ','))
+        i++;
+    string rs1 = "";
+    while (i < s.length() && !(s[i] == ' ' || s[i] == ','))
+        rs1 += s[i++];
+    while (i < s.length() && (s[i] == ' ' || s[i] == ','))
+        i++;
+    string rs2 = "";
+    while (i < s.length())
+        rs2 += s[i++];
+    rd = Registers::getRegister(rd);
+    rs1 = Registers::getRegister(rs1);
+    rs2 = Registers::getRegister(rs2);
+    string funct3 = getFunc3(func);
+    string funct7 = getFunc7(func);
+    string OpCode = getOpCode();
+    return funct7 + rs2 + rs1 + funct3 + rd + OpCode;
 }
 
-void Registers::Release_Reg_Curr_Writing_Cnt(string s)
+// I_Type
+I_Type::I_Type()
 {
-    int regIndex = check_Reg(s);
-    if (regIndex != -1 && Reg_Curr_Writing_Cnt[regIndex] == 0)
-    {
-        cout << __LINE__ << "No Instructions is writing to the register. Release Failed..." << endl;
-        return;
-    }
-    if (regIndex != -1)
-        Reg_Curr_Writing_Cnt[regIndex]--;
+    OpCode = "0010011";
+    Func3 = {
+        {"addi", "000"},
+        {"andi", "111"},
+        {"ori", "110"},
+        {"xori", "100"},
+        {"slli", "001"},
+        {"srli", "101"},
+        {"srai", "101"},
+    };
 }
 
-void Registers::Print_Vals()
-{
-    for (int i = 0; i < 32; i++)
-    {
-        cout << "x" << i << " -> " << safe_stoi(this->Register_Val[i]) << endl;
-    }
-    cout << endl;
-}
+string I_Type::getOpCode() { return OpCode; }
 
-int Registers::safe_stoi(string s)
+string I_Type::getFunc3(string func)
 {
-    try
-    {
-        int num = stoi(s, nullptr, 2);
-        return num;
-    }
-    catch (const out_of_range &e)
-    {
-        cerr << "Out of range error in stoi for string: " << s << endl;
-        throw;
-    }
-}
-
-DataMemory::DataMemory()
-{
-    Memory_Val.resize(MEM_SIZE, "00000000000000000000000000000000");
-}
-
-string DataMemory::Read_Mem_Value(string s)
-{
-    if (s.length() != 32)
-    { // Check
-        cout << __LINE__ << "Invalid Memory Data value. Data Fetching Failed..." << endl;
-    }
-    int regInd = 0;
-    int i = 31;
-    while (i >= 22)
-    {
-        regInd += ((s[i] == '1') ? (1 << (31 - i)) : 0);
-        i--;
-    }
-    regInd = regInd / 4;
-    if (regInd >= 0 && regInd < MEM_SIZE)
-        return Memory_Val[regInd];
+    if (Func3.find(func) != Func3.end())
+        return Func3[func];
     else
-        cout << __LINE__ << "Invalid Memory Address value. Data Fetching Failed..." << endl;
-    return NULL;
-}
-
-void DataMemory::Write_Mem_Value(string s, string val)
-{
-    if (s.length() != 32)
     {
-        cout << __LINE__ << "Invalid Memory Value. Data Fetching Failed..." << endl;
-        return;
-    }
-    int regInd = 0;
-    int i = 31;
-    while (i >= 22)
-    {
-        regInd += ((s[i] == '1') ? (1 << (31 - i)) : 0);
-        i--;
-    }
-    regInd = regInd / 4;
-    if (regInd >= 0 && regInd < 20)
-        Memory_Val[regInd] = val;
-    else
-        cout << __LINE__ << "Invalid Memory Address Value. Data Writing Failed..." << endl;
-    return;
-}
-
-void DataMemory::Print_Vals()
-{
-    for (int i = 0; i < MEM_SIZE; i++)
-    {
-        cout << "Mem_" << i << " -> " << safe_stoi(this->Memory_Val[i]) << endl;
-    }
-    cout << endl;
-}
-
-int DataMemory::safe_stoi(string s)
-{
-    try
-    {
-        int num = stoi(s, nullptr, 2);
-        return num;
-    }
-    catch (const out_of_range &e)
-    {
-        cerr << "Out of range error in stoi for string: " << s << endl;
-        throw;
+        cout << "Error in obtaining Func3." << __LINE__ << endl;
+        return NULL;
     }
 }
 
-// Pipeline Stages -------------------------------------------------------------
-
-void Pipeline::Reg_Write(_MOWB *MOWB, Registers *Regs)
+string I_Type::get_Binary(string s, string func)
 {
-    if (!MOWB->valid)
-        return;
-    if (MOWB->CW[4] == '1')
+    int i = s.find_first_of(" ");
+    string rd = "";
+    while (i < s.length() && s[i] == ' ')
+        i++;
+    while (i < s.length() && !(s[i] == ' ' || s[i] == ','))
+        rd += s[i++];
+    while (i < s.length() && (s[i] == ' ' || s[i] == ','))
+        i++;
+    string rs1 = "";
+    while (i < s.length() && !(s[i] == ' ' || s[i] == ','))
+        rs1 += s[i++];
+    while (i < s.length() && (s[i] == ' ' || s[i] == ','))
+        i++;
+    rd = Registers::getRegister(rd);
+    rs1 = Registers::getRegister(rs1);
+
+    string Imm = "";
+    if (func != "slli" && func != "srli" && func != "srai")
     {
-        if (MOWB->CW[10] == '1')
-            Regs->Write_Reg_Value(MOWB->RD, MOWB->LD_OUT);
+        i = s.length();
+        while (i >= 0 && s[i] == ' ')
+            i--;
+        int immE = i;
+        while (i >= 0 && s[i] != ' ')
+            i--;
+        Imm = s.substr(i + 1, immE - i);
+        if (Imm.length() > 1 && Imm[1] == 'x')
+            Imm = Utility::hex_to_binary(Imm.substr(2), 12);
         else
-            Regs->Write_Reg_Value(MOWB->RD, MOWB->ALU_OUT);
-        Regs->Release_Reg_Curr_Writing_Cnt(MOWB->RD);
+            Imm = Utility::to_binary_12(Imm);
+    }
+    else
+    {
+        i = s.length();
+        while (i >= 0 && s[i] == ' ')
+            i--;
+        int immE = i;
+        while (i >= 0 && s[i] != ' ')
+            i--;
+        Imm = s.substr(i + 1, immE - i);
+        if (Imm.length() > 1 && Imm[1] == 'x')
+            Imm = Utility::hex_to_binary(Imm.substr(2), 5);
+        else
+            Imm = Utility::to_binary_5(Imm);
+        Imm = "0000000" + Imm;
+        if (func == "srai")
+            Imm[1] = '1';
+    }
+    string funct3 = getFunc3(func);
+    string OpCode = getOpCode();
+    return Imm + rs1 + funct3 + rd + OpCode;
+}
+
+// Load_Type
+Load_Type::Load_Type()
+{
+    OpCode = "0000011";
+    Func3 = {
+        {"lb", "000"},
+        {"lh", "001"},
+        {"lw", "010"},
+        {"lbu", "100"},
+        {"lhu", "101"}};
+}
+
+string Load_Type::getOpCode() { return OpCode; }
+
+string Load_Type::getFunc3(string func)
+{
+    if (Func3.find(func) != Func3.end())
+        return Func3[func];
+    else
+    {
+        cout << "Error in obtaining Func3." << __LINE__ << endl;
+        return NULL;
     }
 }
 
-void Pipeline::Mem_Access(_EXMO *EXMO, _MOWB *MOWB, DataMemory *Memory)
+string Load_Type::get_Binary(string s, string func)
 {
-    if (MOWB->stalled)
-        return;
-    if (!EXMO->valid)
-    {
-        MOWB->valid = false;
-        return;
-    }
-    if (EXMO->CW[9] == '1')
-    {
-        Memory->Write_Mem_Value(EXMO->ALU_OUT, EXMO->RS2);
-    }
-    if (EXMO->CW[8] == '1')
-        MOWB->LD_OUT = Memory->Read_Mem_Value(EXMO->ALU_OUT);
-    MOWB->ALU_OUT = EXMO->ALU_OUT;
-    MOWB->CW = EXMO->CW;
-    MOWB->RD = EXMO->RD;
-    EXMO->stalled = false;
-    MOWB->valid = true;
+    int i = s.find_first_of(" ");
+    string rd = "";
+    while (i < s.length() && s[i] == ' ')
+        i++;
+    while (i < s.length() && !(s[i] == ' ' || s[i] == ','))
+        rd += s[i++];
+    while (i < s.length() && (s[i] == ' ' || s[i] == ','))
+        i++;
+    string Imm = "";
+    while (i < s.length() && s[i] != '(')
+        Imm += s[i++];
+    if (Imm.length() > 1 && s[1] == 'x')
+        Imm = Utility::hex_to_binary(Imm.substr(2), 12);
+    else
+        Imm = Utility::to_binary_12(Imm);
+    i++;
+    string rs1 = "";
+    while (i < s.length() && !(s[i] == ' ' || s[i] == ',' || s[i] == ')'))
+        rs1 += s[i++];
+
+    rd = Registers::getRegister(rd);
+    rs1 = Registers::getRegister(rs1);
+    string funct3 = getFunc3(func);
+    string OpCode = getOpCode();
+    return Imm + rs1 + funct3 + rd + OpCode;
 }
 
-void Pipeline::Ins_Exe(_IFID *IFID, _IDEX *IDEX, _EXMO *EXMO, _PC *PC)
+// B_Type
+B_Type::B_Type()
 {
-    if (EXMO->stalled)
-        return;
-    if (!IDEX->valid)
-    {
-        EXMO->valid = false;
-        return;
-    }
-    int AluSelect = Utility::AluController(IDEX->FUNC3_30thBit, IDEX->CW.substr(0, 3));
-    if (IDEX->RS1.length() != 0)
-    {
-        EXMO->ALU_OUT = Utility::AluUnit(AluSelect, IDEX->RS1, ((IDEX->CW[5] == '0') ? IDEX->IMM_Reg : IDEX->RS2));
-    }
-    else if (IDEX->CW.substr(0, 3) == "011")
-    {
-    }
-    else if (IDEX->CW.substr(0, 3) == "100")
-    {
-        string sum_str = bitset<32>(IDEX->DPC + 4).to_string();
-        EXMO->ALU_OUT = sum_str.substr(sum_str.length() - 32, sum_str.length());
-    }
-    else if (IDEX->CW.substr(0, 3) == "101")
-    {
-        int val = Utility::safe_stoi(IDEX->IMM_Reg);
-        val = val << 12;
-        string val_str = bitset<32>(val).to_string();
-        EXMO->ALU_OUT = val_str.substr(val_str.length() - 32, val_str.length());
-    }
-    bool ALUZeroFlag = false;
-    if (IDEX->RS1.length() != 0)
-        ALUZeroFlag = (IDEX->RS1 == IDEX->RS2);
-    EXMO->CW == IDEX->CW;
-    EXMO->RS2 = IDEX->RS2;
-    EXMO->RD = IDEX->RD;
-    if (IDEX->CW[6] == '1' && ALUZeroFlag)
-    {
-        PC->TPC = Utility::shiftLeft(IDEX->IMM_Br) + IDEX->DPC;
-        EXMO->valid = false;
-        IDEX->valid = false;
-        IFID->valid = false;
-    }
-    if (IDEX->CW[7] == '1')
-    {
-        PC->TPC = IDEX->JPC;
-        EXMO->valid = false;
-        IDEX->valid = false;
-        IFID->valid = false;
-    }
-    IDEX->stalled = false;
-    EXMO->valid = true;
+    OpCode = "1100011";
+    Func3 = {
+        {"beq", "000"},
+        {"bne", "001"},
+        {"blt", "100"},
+        {"bge", "101"},
+        {"bltu", "110"},
+        {"bgeu", "111"},
+    };
 }
 
-void Pipeline::Ins_Decode(_IFID *IFID, _IDEX *IDEX, Registers *Regs)
+string B_Type::getOpCode() { return OpCode; }
+
+string B_Type::getFunc3(string func)
 {
-    if (IDEX->stalled)
-        return;
-    if (!IFID->valid)
+    if (Func3.find(func) != Func3.end())
+        return Func3[func];
+    else
     {
-        IDEX->valid = false;
-        return;
+        cout << "Error in obtaining Func3." << __LINE__ << endl;
+        return NULL;
     }
-    IDEX->CW = Utility::Controller(IFID->IR.substr(25, 7));
-
-    if (IDEX->CW.substr(0, 3) == "100")
-    {
-        // IDEX->JPC = IFID->NPC + Utility::signExtend(IFID->IR.substr(0, 12)); // Jalr
-        IDEX->JPC = IFID->NPC + Utility::signExtend(IFID->IR[0] + IFID->IR.substr(12, 8) + IFID->IR[11] + IFID->IR.substr(1, 10) + '0'); // Jal
-    }
-    IDEX->DPC = IFID->DPC;
-
-    string type = IDEX->CW.substr(0, 3);
-    if (type == "000")
-    {
-        // R Type
-        IDEX->RD = IFID->IR.substr(20, 5);
-        IDEX->FUNC3_30thBit = IFID->IR.substr(17, 3) + IFID->IR[1];
-        IDEX->IMM_Reg = "";
-        IDEX->RS2 = Regs->Read_Reg_Value(IFID->IR.substr(7, 5));
-        IDEX->RS1 = Regs->Read_Reg_Value(IFID->IR.substr(12, 5));
-        IDEX->IMM_Br = "";
-    }
-    else if (type == "001" || type == "010")
-    {
-        // I Type and Load Type
-        IDEX->RD = IFID->IR.substr(20, 5);
-        IDEX->FUNC3_30thBit = IFID->IR.substr(17, 3) + '0';
-        IDEX->IMM_Reg = IFID->IR.substr(0, 12);
-        if (IFID->IR.substr(17, 3) == "101" || IFID->IR.substr(17, 3) == "001")
-        {
-            if (IFID->IR.substr(17, 3) == "101")
-                IDEX->FUNC3_30thBit[3] = IFID->IR[1];
-            IDEX->IMM_Reg = IFID->IR.substr(7, 5);
-        }
-        IDEX->RS2 = "";
-        IDEX->RS1 = Regs->Read_Reg_Value(IFID->IR.substr(12, 5));
-        IDEX->IMM_Br = "";
-    }
-    else if (type == "011")
-    {
-        // Branch Type
-        IDEX->RD = "";
-        IDEX->FUNC3_30thBit = IFID->IR.substr(17, 3) + '0';
-        IDEX->IMM_Reg = "";
-        IDEX->RS2 = Regs->Read_Reg_Value(IFID->IR.substr(7, 5));
-        IDEX->RS1 = Regs->Read_Reg_Value(IFID->IR.substr(12, 5));
-        IDEX->IMM_Br = IFID->IR.substr(0, 1) + IFID->IR.substr(24, 1) + IFID->IR.substr(1, 6) + IFID->IR.substr(20, 4);
-    }
-    else if (type == "100")
-    {
-        // only Jalr
-        // IDEX->RD = IFID->IR.substr(20, 5);
-        // IDEX->FUNC3_30thBit = IFID->IR.substr(17, 3) + '0';
-        // IDEX->IMM_Reg = IFID->IR.substr(0, 12);
-        // IDEX->RS2 = "";
-        // IDEX->RS1 = Regs->Read_Reg_Value(IFID->IR.substr(12, 5));
-        // IDEX->IMM_Br = "";
-
-        IDEX->RD = IFID->IR.substr(20, 5);
-        IDEX->FUNC3_30thBit = "";
-        IDEX->IMM_Reg = "";
-        IDEX->RS2 = "";
-        IDEX->RS1 = "";
-        IDEX->IMM_Br = "";
-    }
-    else if (type == "101")
-    {
-        // U Type
-        IDEX->RD = IFID->IR.substr(20, 5);
-        IDEX->FUNC3_30thBit = "";
-        IDEX->IMM_Reg = IFID->IR.substr(0, 20);
-        IDEX->RS2 = "";
-        IDEX->RS1 = "";
-        IDEX->IMM_Br = "";
-    }
-    else if (type == "110")
-    {
-        // Store Type
-        IDEX->RD = "";
-        IDEX->FUNC3_30thBit = IFID->IR.substr(17, 3) + '0';
-        IDEX->IMM_Reg = IFID->IR.substr(0, 7) + IFID->IR.substr(20, 5);
-        IDEX->RS2 = Regs->Read_Reg_Value(IFID->IR.substr(7, 5));
-        IDEX->RS1 = Regs->Read_Reg_Value(IFID->IR.substr(12, 5));
-        IDEX->IMM_Br = "";
-    }
-
-    if (IDEX->RS1 == "WAIT" || IDEX->RS2 == "WAIT")
-    {
-        IFID->stalled = true;
-        IDEX->valid = false;
-        return;
-    }
-    if (IDEX->CW[4] == '1')
-    {
-        Regs->Lock_Reg_Curr_Writing_Cnt(IDEX->RD);
-    }
-
-    IDEX->valid = true;
-    IFID->stalled = false;
 }
 
-void Pipeline::Fetch(_PC *PC, _IFID *IFID, vector<string> &Instructions)
+string B_Type::get_Binary(string s, string func)
 {
-    // Here we should have done +4 for NPC but since we are using array for simulation the index will be +1 of the previous index
-    if (IFID->stalled)
-        return;
-    if (!PC->valid)
+    int i = s.find_first_of(" ");
+    string rs1 = "";
+    while (i < s.length() && s[i] == ' ')
+        i++;
+    while (i < s.length() && !(s[i] == ' ' || s[i] == ','))
+        rs1 += s[i++];
+    while (i < s.length() && (s[i] == ' ' || s[i] == ','))
+        i++;
+    string rs2 = "";
+    while (i < s.length() && !(s[i] == ' ' || s[i] == ','))
+        rs2 += s[i++];
+    while (i < s.length() && (s[i] == ' ' || s[i] == ','))
+        i++;
+    rs1 = Registers::getRegister(rs1);
+    rs2 = Registers::getRegister(rs2);
+    string Imm = s.substr(i);
+    if (Imm.length() > 1 && Imm[1] == 'x')
+        Imm = Utility::hex_to_binary(Imm.substr(2), 13);
+    else
+        Imm = Utility::to_binary_13(Imm);
+    string funct3 = getFunc3(func);
+    string OpCode = getOpCode();
+    return Imm[0] + Imm.substr(2, 6) + rs2 + rs1 + funct3 + Imm.substr(8, 4) + Imm[1] + OpCode;
+}
+
+// J_Type
+J_Type::J_Type()
+{
+    OpCode = "1101111";
+}
+
+string J_Type::getOpCode() { return OpCode; }
+
+string J_Type::get_Binary(string s, string func)
+{
+    if (func == "jalr")
     {
-        IFID->valid = false;
-        return;
+        int i = s.find_first_of(" ");
+        string rd = "";
+        while (i < s.length() && s[i] == ' ')
+            i++;
+        while (i < s.length() && !(s[i] == ' ' || s[i] == ','))
+            rd += s[i++];
+        while (i < s.length() && (s[i] == ' ' || s[i] == ','))
+            i++;
+        string Imm = "";
+        while (i < s.length() && s[i] != '(')
+            Imm += s[i++];
+        if (Imm.length() > 1 && Imm[1] == 'x')
+            Imm = Utility::hex_to_binary(Imm.substr(2), 12);
+        else
+            Imm = Utility::to_binary_12(Imm);
+        i++;
+        while (i < s.length() && (s[i] == ' ' || s[i] == ','))
+            i++;
+        string rs1 = "";
+        while (i < s.length() && !(s[i] == ' ' || s[i] == ',' || s[i] == ')'))
+            rs1 += s[i++];
+        rd = Registers::getRegister(rd);
+        rs1 = Registers::getRegister(rs1);
+        string Func3 = "000";
+        OpCode[3] = '0';
+        return Imm + rs1 + Func3 + rd + OpCode;
     }
-    IFID->DPC = PC->TPC;
-    IFID->NPC = PC->TPC + 4;
-    IFID->IR = Instructions[PC->TPC / 4];
-    PC->TPC = IFID->NPC;
-    IFID->valid = true;
+    else
+    {
+        int i = s.find_first_of(" ");
+        string rd = "";
+        while (i < s.length() && s[i] == ' ')
+            i++;
+        while (i < s.length() && !(s[i] == ' ' || s[i] == ','))
+            rd += s[i++];
+        while (i < s.length() && (s[i] == ' ' || s[i] == ','))
+            i++;
+        rd = Registers::getRegister(rd);
+        string Imm = s.substr(i);
+        if (Imm.length() > 1 && Imm[1] == 'x')
+            Imm = Utility::hex_to_binary(Imm.substr(2), 21);
+        else
+            Imm = Utility::to_binary_21(Imm);
+        string OpCode = getOpCode();
+        return Imm[0] + Imm.substr(10, 10) + Imm[9] + Imm.substr(1, 8) + rd + OpCode;
+    }
+}
+
+// U_Type
+U_Type::U_Type()
+{
+    OpCode = "0110111";
+}
+
+string U_Type::getOpCode() { return OpCode; }
+
+string U_Type::get_Binary(string s, string func)
+{
+    int i = s.find_first_of(" ");
+    string rd = "";
+    while (i < s.length() && s[i] == ' ')
+        i++;
+    while (i < s.length() && !(s[i] == ' ' || s[i] == ','))
+        rd += s[i++];
+    while (i < s.length() && (s[i] == ' ' || s[i] == ','))
+        i++;
+    rd = Registers::getRegister(rd);
+    string Imm = s.substr(i);
+    if (Imm.length() > 1 && Imm[1] == 'x')
+        Imm = Utility::hex_to_binary(Imm.substr(2), 20);
+    else
+        Imm = Utility::to_binary_20(Imm);
+
+    string OpCode = getOpCode();
+    return Imm + rd + OpCode;
+}
+
+// S_Type
+S_Type::S_Type()
+{
+    OpCode = "0100011";
+    Func3 = {
+        {"sd", "011"},
+        {"sw", "010"},
+        {"sh", "001"},
+        {"sb", "000"},
+    };
+}
+
+string S_Type::getOpCode() { return OpCode; }
+
+string S_Type::getFunc3(string func)
+{
+    if (Func3.find(func) != Func3.end())
+        return Func3[func];
+    else
+    {
+        cout << "Error in obtaining Func3." << __LINE__ << endl;
+        return NULL;
+    }
+}
+
+string S_Type::get_Binary(string s, string func)
+{
+    int i = s.find_first_of(" ");
+    string rs2 = "";
+    while (i < s.length() && s[i] == ' ')
+        i++;
+    while (i < s.length() && !(s[i] == ' ' || s[i] == ','))
+        rs2 += s[i++];
+    while (i < s.length() && (s[i] == ' ' || s[i] == ','))
+        i++;
+    string Imm = "";
+    while (i < s.length() && s[i] != '(')
+        Imm += s[i++];
+    if (Imm.length() > 1 && Imm[1] == 'x')
+        Imm = Utility::hex_to_binary(Imm.substr(2), 12);
+    else
+        Imm = Utility::to_binary_12(Imm);
+    i++;
+    string rs1 = "";
+    while (i < s.length() && !(s[i] == ' ' || s[i] == ',' || s[i] == ')'))
+        rs1 += s[i++];
+    rs2 = Registers::getRegister(rs2);
+    rs1 = Registers::getRegister(rs1);
+    string funct3 = getFunc3(func);
+    string OpCode = getOpCode();
+    return Imm.substr(0, 7) + rs2 + rs1 + funct3 + Imm.substr(7, 5) + OpCode;
 }
