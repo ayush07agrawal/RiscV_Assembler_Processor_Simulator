@@ -1,4 +1,5 @@
 #include<bits/stdc++.h>
+#include <chrono>
 using namespace std;
 
 #define CACHE_SIZE 32 // in KB
@@ -24,55 +25,62 @@ int main(){
 
     // Initializes the cache
     Cache* _cache = new Cache();
-
-    // Calculating the number of blocks and sets in the cache
-    int Block_Cnt = (CACHE_SIZE*1024) / BLOCK_SIZE;
-    int SetCnt = Block_Cnt/WAYS_CNT;
+    int Block_Cnt = (CACHE_SIZE * 1024) / BLOCK_SIZE;
+    int SetCnt = Block_Cnt / WAYS_CNT;
 
     // Breaking the address bits
     int offset_bits = log2(BLOCK_SIZE);
     int index_bits = log2(SetCnt);
     int tag_bits = ADD_BITS - (index_bits + offset_bits);
-    int tagMax = (1<<tag_bits);
-    int indMax = (1<<index_bits);
+    int tagMax = (1 << tag_bits);
+    int indMax = (1 << index_bits);
 
-    // // Initializes the normal distribution 
-    normal_distribution<double> dist_ways (WAYS_CNT/2, WAYS_CNT/4);
-    normal_distribution<double> distribution ((1LL<<39), (1LL<<14));
+    normal_distribution<double> dist_ways(WAYS_CNT / 2, WAYS_CNT / 4);
+    normal_distribution<double> distribution((1LL << 39), (1LL << 14));
 
+    // Get desired runtime in seconds
+    int duration_seconds;
+    cout << "Enter duration in seconds: ";
+    cin >> duration_seconds;
 
-    int hits = 0, miss = 0;
-    long long cnt = 10000000;
+    // Capture the start time
+    auto start_time = chrono::high_resolution_clock::now();
 
-    while(cnt--){
-        if(cnt == 0){
-            cout << "Do you wish to continue?";
-            int x;
-            cin >> x;
-            if(x == 1) cnt += 1000000;
-        }
+    int hits = 0, miss = 0, write = 0;
+
+    while (true) {
+        // Calculate elapsed time
+        auto current_time = chrono::high_resolution_clock::now();
+        auto elapsed_time = chrono::duration_cast<chrono::seconds>(current_time - start_time).count();
+
+        // Stop if elapsed time exceeds the set duration
+        if (elapsed_time >= duration_seconds) break;
+
         long long address = (long long)distribution(generator);
 
         int tag = address >> (index_bits + offset_bits);
         int index = (address >> offset_bits) % indMax;
+        int isWrite = rand() % 2;
+        if(isWrite == 1) write++;
 
-        // cout << tag << " " << index << endl;
-        if(_cache->search(tag, index)){
+        if(_cache->search(tag, index)) {
             hits++;
-        }
-        else{
-            miss++;
-            int ranWays = (int)dist_ways(generator);
-            while(ranWays<0 || ranWays>=WAYS_CNT){
-                ranWays = (int)dist_ways(generator);
+        }else{
+            miss++;            
+            if(isWrite == 0){
+                int ranWays = (int)dist_ways(generator);
+                while (ranWays < 0 || ranWays >= WAYS_CNT) {
+                    ranWays = (int)dist_ways(generator);
+                }
+                _cache->set(tag, index, ranWays);
             }
-            _cache->set(tag, index, ranWays);
         }
     }
 
+    // cout << "Write: " << write << endl;
     cout << "Total Hits: " << hits << endl;
     cout << "Total Misses: " << miss << endl;
-    cout << "Miss Rate: " << ((double)miss/(hits+miss))*100 << endl;
+    cout << "Miss Rate: " << ((double)miss / (hits + miss)) * 100 << endl;
 
     return 0;
 }
