@@ -60,6 +60,8 @@ int main(){
 
         int tag = address >> (index_bits + offset_bits);
         int index = (address >> offset_bits) % indMax;
+
+        // Randomly marking the request as read or write 
         int isWrite = rand() % 2;
         if(isWrite == 1) write++;
 
@@ -112,6 +114,7 @@ void Cache::set(int tag, int index, int ranWays){
             return;
         }
     }
+    // if no empty block is available then we have to randomly replace a block
     Status_bits[index][ranWays] = 1;
     Tag_bits[index][ranWays] = tag;
     return;

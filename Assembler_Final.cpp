@@ -133,28 +133,29 @@ int main(){
         for(int i=0; i<str.length(); i++) str[i] = tolower(str[i]);
         string func = str.substr(0, str.find_first_of(" "));
         string type = f_to_IS_Converter.get_IS_Type(func);
-        
+        cout << "\"";
         if(type == "R_Type"){
-            cout << R_Type_obj.get_Binary(str, func) << endl;
+            cout << R_Type_obj.get_Binary(str, func);
         }
         else if(type == "I_Type"){
-            cout << I_Type_obj.get_Binary(str, func) << endl;
+            cout << I_Type_obj.get_Binary(str, func);
         }
         else if(type == "Load_Type"){
-            cout << Load_Type_obj.get_Binary(str, func) << endl;
+            cout << Load_Type_obj.get_Binary(str, func);
         }
         else if(type == "B_Type"){
-            cout << B_Type_obj.get_Binary(str, func) << endl;
+            cout << B_Type_obj.get_Binary(str, func);
         }
         else if(type == "J_Type"){
-            cout << J_Type_obj.get_Binary(str, func) << endl;
+            cout << J_Type_obj.get_Binary(str, func);
         }
         else if(type == "U_Type"){
-            cout << U_Type_obj.get_Binary(str, func) << endl;
+            cout << U_Type_obj.get_Binary(str, func);
         }
         else if(type == "S_Type"){
-            cout << S_Type_obj.get_Binary(str, func) << endl;
+            cout << S_Type_obj.get_Binary(str, func);
         }
+        cout << "\"" << "," << endl;
     }
 }
 

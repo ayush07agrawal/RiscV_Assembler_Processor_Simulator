@@ -185,6 +185,7 @@ public:
 
 class Registers
 {
+    Utility *_utility;
     vector<string> Register_Val;
     vector<int> Reg_Curr_Writing_Cnt;
 
@@ -201,6 +202,7 @@ public:
 
 class DataMemory
 {
+    Utility *_utility;
     vector<string> Memory_Val;
 
 public:
@@ -218,7 +220,7 @@ class Pipeline : private Utility, private DataMemory, private Registers
 public:
     void Reg_Write(_MOWB *MOWB, Registers *Regs);
     void Mem_Access(_EXMO *EXMO, _MOWB *MOWB, DataMemory *Memory);
-    void Ins_Exe(_IFID *IFID, _IDEX *IDEX, _EXMO *EXMO, _PC *PC);
+    void Ins_Exe(_IFID *IFID, _IDEX *IDEX, _EXMO *EXMO, _PC *PC, int& Ins_Cnt);
     void Ins_Decode(_IFID *IFID, _IDEX *IDEX, Registers *Regs);
     void Fetch(_PC *PC, _IFID *IFID, vector<string> &Instructions);
 };
@@ -230,22 +232,20 @@ int main()
     freopen("output.txt", "w", stdout);
 #endif
     vector<string> Instructions = {
-        "00001111000000000000010100010011",
-        "00001101000100000000010110010011",
-        "00000000101101010111011000110011",
-        "00000000110000000010000000100011",
-        "00000000101101010110011000110011",
-        "00000000110000000010001000100011",
-        "00000000101101010100011000110011",
-        "00000000110000000010010000100011",
-        "11111111111101100100011000010011",
-        "00000000110000000010011000100011",
-        "00000000001001100001011000010011",
-        "00000000110000000010100000100011",
-        "00000000001101100101011000010011",
-        "00000000110000000010101000100011",
-        "01000000010001100101011000010011",
-        "00000000110000000010110000100011"};
+        "00001010101000000000010000010011",
+        "00000000000000000000010010010011",
+        "00000000000100000000001010010011",
+        "00000000100000000000001100010011",
+        "00000000100000000000111000110011",
+        "00000000000111100111111010010011",
+        "00000000000111100101111000010011",
+        "00000000011111101001111010010011",
+        "00000001110111100110111000110011",
+        "00000001110001000001010001100011",
+        "00000000000101001000010010010011",
+        "00000000000100101000001010010011",
+        "11111110011000101001001011100011"
+    };
 
     Registers *Regs = new Registers();
     DataMemory *Memory = new DataMemory();
@@ -258,12 +258,13 @@ int main()
     bool stop = false;
 
     int cycleCnt = 1;
+    int Ins_Cnt = 0;
 
     while (!stop)
     {
         pipe1->Reg_Write(MOWB, Regs);
         pipe1->Mem_Access(EXMO, MOWB, Memory);
-        pipe1->Ins_Exe(IFID, IDEX, EXMO, PC);
+        pipe1->Ins_Exe(IFID, IDEX, EXMO, PC, Ins_Cnt);
         pipe1->Ins_Decode(IFID, IDEX, Regs);
         pipe1->Fetch(PC, IFID, Instructions);
 
@@ -272,27 +273,22 @@ int main()
             PC->valid = false;
         }
         else
+        {
             PC->valid = true;
-
+        }
         stop = !(PC->valid || IFID->valid || IDEX->valid || EXMO->valid || MOWB->valid);
-        // cout << "Next PC-> " << PC->TPC << endl;
-        // cout << PC->valid << " " << IFID->valid << " " << IDEX->valid << " " << EXMO->valid << " " << MOWB->valid << endl;
-        // cout << "------------" << endl;
-
         cycleCnt++;
-
-        cout << "Registers Values:" << endl;
-        Regs->Print_Vals();
-        cout << endl;
     }
 
     cout << "Cycle Count = " << cycleCnt << endl;
+    cout << "Instructions Count = " << Ins_Cnt << endl;
+    cout << "IPC = " << ((1.0*Ins_Cnt)/cycleCnt) << endl;
 
-    // cout << "Registers Values:" << endl;
-    // Regs->Print_Vals();
-    // cout << endl;
-    // cout << "Memory Values:" << endl;
-    // Memory->Print_Vals();
+    cout << "Registers Values:" << endl;
+    Regs->Print_Vals();
+    cout << endl;
+    cout << "Memory Values:" << endl;
+    Memory->Print_Vals();
 
     return 0;
 }
@@ -300,8 +296,8 @@ int main()
 // Utility ---------------------------------------------------------------------
 string Utility::add(string a, string b)
 {
-    int a_int = safe_stoi(a);
-    int b_int = safe_stoi(b);
+    int a_int = signExtend(a);
+    int b_int = signExtend(b);
     int sum = a_int + b_int;
     string sum_str = bitset<32>(sum).to_string();
     return sum_str.substr(sum_str.length() - 32, sum_str.length());
@@ -309,7 +305,7 @@ string Utility::add(string a, string b)
 
 int Utility::shiftLeft(string s)
 {
-    int a_int = safe_stoi(s);
+    int a_int = signExtend(s);
     return (a_int << 1);
 }
 
@@ -320,7 +316,16 @@ int Utility::signExtend(string s)
     {
         s = c + s;
     }
-    int res = safe_stoi(s);
+    reverse(s.begin(), s.end());
+    int res = 0;
+    for (int i = 0; i < 31; i++)
+    {
+        res = res + ((int)(s[i] - '0') << i);
+    }
+    if (s[31] == '1')
+    {
+        res -= (1 << 31);
+    }
     return res;
 }
 
@@ -355,9 +360,8 @@ string Utility::Controller(string OpCode)
     else if (OpCode == "1100011")
         return "01110110000";
     // J Type (Check)
-    // else if (OpCode == "1100111")
+    // else if (OpCode == "1100111") return "10011001000"; JALR
     else if (OpCode == "1101111")
-        // return "10011001000"; JALR
         return "10001001000"; // JAL
     // U Type (Check)
     else if (OpCode == "0110111")
@@ -369,11 +373,27 @@ string Utility::Controller(string OpCode)
 
 int Utility::AluController(string Func3_30thBit, string AluOp)
 {
-    // 1 - Add, 2 - Sub, 3 - And, 4 - Or, 5 - Xor, 6 - Sll, 7 - Srl, 8 - Sra, 9 - Set Less Than, 10 - Nothing
+    // 1 - Add, 2 - Sub, 3 - And, 4 - Or, 5 - Xor, 6 - Sll, 7 - Srl, 8 - Sra, 9 - Set Less Than, 10 - Nothing, 11 - check equal, 12 - check not equal, 13 - check greater than or equal, 14 - check less than
     if (AluOp == "010" || AluOp == "110")
+    {
         return 1; // Load and store
-    if (AluOp == "011" || AluOp == "101")
-        return 10; // Branch and U Type
+    }
+    if (AluOp == "101")
+    {
+        return 10; // U Type
+    }
+    if (AluOp == "011")
+    {
+        // Branch Type
+        if (Func3_30thBit == "0000")
+            return 11;
+        if (Func3_30thBit == "0010")
+            return 12;
+        if (Func3_30thBit == "1010")
+            return 13;
+        if (Func3_30thBit == "1000")
+            return 14;
+    }
     if (AluOp == "100")
     {
         // Jump
@@ -406,10 +426,10 @@ int Utility::AluController(string Func3_30thBit, string AluOp)
 
 string Utility::AluUnit(int AluSelect, string RS1, string RS2)
 {
-    int a = ((RS1.length() > 0) ? safe_stoi(RS1) : 0);
-    int b = ((RS2.length() > 0) ? safe_stoi(RS2) : 0);
+    int a = ((RS1.length() > 0) ? signExtend(RS1) : 0);
+    int b = ((RS2.length() > 0) ? signExtend(RS2) : 0);
     int res = 0;
-    cout << a << " " << b << " " << AluSelect << endl;
+    // cout << a << " " << b << " " << AluSelect << endl;
     switch (AluSelect)
     {
     case 1:
@@ -450,6 +470,8 @@ string Utility::AluUnit(int AluSelect, string RS1, string RS2)
     case 8:
     { // SRA (check)
         res = a >> b;
+        // cout << "Before: " << a << endl;
+        // cout << "Shift Right: " << res << endl;
         break;
     }
     case 9:
@@ -468,7 +490,6 @@ string Utility::AluUnit(int AluSelect, string RS1, string RS2)
         break;
     }
     }
-    cout << res << endl;
     string res_str = bitset<32>(res).to_string();
     return res_str.substr(res_str.length() - 32, res_str.length());
 }
@@ -477,6 +498,7 @@ Registers::Registers()
 {
     Register_Val.resize(32, "00000000000000000000000000000000");
     Reg_Curr_Writing_Cnt.resize(32, 0);
+    this->_utility = new Utility();
 }
 
 int Registers::check_Reg(string s)
@@ -518,9 +540,12 @@ void Registers::Write_Reg_Value(string s, string val)
         return;
     }
     int regIndex = check_Reg(s);
-    if (regIndex != -1)
+    if (regIndex != -1 && regIndex != 0)
     {
         Register_Val[regIndex] = val;
+    }
+    else if(regIndex == 0){
+        cout << __LINE__ << " Cannot Write to the zero register..." << endl;
     }
     else
     {
@@ -551,9 +576,9 @@ void Registers::Release_Reg_Curr_Writing_Cnt(string s)
 
 void Registers::Print_Vals()
 {
-    for (int i = 10; i < 13; i++)
+    for (int i = 0; i < 32; i++)
     {
-        cout << "x" << i << " -> " << safe_stoi(this->Register_Val[i]) << endl;
+        cout << "x" << i << " -> " << _utility->signExtend(this->Register_Val[i]) << endl;
     }
     cout << endl;
 }
@@ -575,6 +600,7 @@ int Registers::safe_stoi(string s)
 DataMemory::DataMemory()
 {
     Memory_Val.resize(MEM_SIZE, "00000000000000000000000000000000");
+    this->_utility = new Utility();
 }
 
 string DataMemory::Read_Mem_Value(string s)
@@ -624,7 +650,7 @@ void DataMemory::Print_Vals()
 {
     for (int i = 0; i < MEM_SIZE; i++)
     {
-        cout << "Mem_" << i << "-> " << safe_stoi(this->Memory_Val[i]) << endl;
+        cout << "Mem_" << i << "-> " << _utility->signExtend(this->Memory_Val[i]) << endl;
     }
     cout << endl;
 }
@@ -689,7 +715,7 @@ void Pipeline::Mem_Access(_EXMO *EXMO, _MOWB *MOWB, DataMemory *Memory)
     MOWB->valid = true;
 }
 
-void Pipeline::Ins_Exe(_IFID *IFID, _IDEX *IDEX, _EXMO *EXMO, _PC *PC)
+void Pipeline::Ins_Exe(_IFID *IFID, _IDEX *IDEX, _EXMO *EXMO, _PC *PC, int& Ins_Cnt)
 {
     if (EXMO->stalled)
         return;
@@ -698,10 +724,26 @@ void Pipeline::Ins_Exe(_IFID *IFID, _IDEX *IDEX, _EXMO *EXMO, _PC *PC)
         EXMO->valid = false;
         return;
     }
+    Ins_Cnt++;
+    bool ALUZeroFlag = false;
     int AluSelect = Utility::AluController(IDEX->FUNC3_30thBit, IDEX->CW.substr(0, 3));
     if (IDEX->RS1.length() != 0)
     {
-        EXMO->ALU_OUT = Utility::AluUnit(AluSelect, IDEX->RS1, ((IDEX->CW[5] == '0') ? IDEX->IMM_Reg : IDEX->RS2));
+        if (AluSelect >= 1 && AluSelect <= 10)
+            EXMO->ALU_OUT = Utility::AluUnit(AluSelect, IDEX->RS1, ((IDEX->CW[5] == '0') ? IDEX->IMM_Reg : IDEX->RS2));
+        else
+        {
+            string val_str = Utility::AluUnit(2, IDEX->RS1, IDEX->RS2);
+            int val = Utility::signExtend(val_str);
+            if (AluSelect == 11 && val == 0)
+                ALUZeroFlag = true;
+            if (AluSelect == 12 && val != 0)
+                ALUZeroFlag = true;
+            if (AluSelect == 13 && val >= 0)
+                ALUZeroFlag = true;
+            if (AluSelect == 14 && val < 0)
+                ALUZeroFlag = true;
+        }
     }
     else if (IDEX->CW.substr(0, 3) == "011")
     {
@@ -715,14 +757,11 @@ void Pipeline::Ins_Exe(_IFID *IFID, _IDEX *IDEX, _EXMO *EXMO, _PC *PC)
     else if (IDEX->CW.substr(0, 3) == "101")
     {
         // cout <<  __LINE__ << " " << IDEX->IMM_Reg << endl;
-        int val = Utility::safe_stoi(IDEX->IMM_Reg);
+        int val = Utility::signExtend(IDEX->IMM_Reg);
         val = val << 12;
         string val_str = bitset<32>(val).to_string();
         EXMO->ALU_OUT = val_str.substr(val_str.length() - 32, val_str.length());
     }
-    bool ALUZeroFlag = false;
-    if (IDEX->RS1.length() != 0)
-        ALUZeroFlag = (IDEX->RS1 == IDEX->RS2);
     EXMO->CW = IDEX->CW;
     EXMO->RS2 = IDEX->RS2;
     EXMO->RD = IDEX->RD;

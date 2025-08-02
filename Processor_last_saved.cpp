@@ -227,10 +227,24 @@ public:
 
 int main()
 {
-    // Assuming that we receive all the instructions in this vector of strings
+// Assuming that we receive all the instructions in this vector of strings
+#ifndef ONLINE_JUDGE
+    freopen("output.txt", "w", stdout);
+#endif
     vector<string> Instructions = {
-
-    };
+        "00001010101000000000010000010011",
+        "00000000000000000000010010010011",
+        "00000000000100000000001010010011",
+        "00000000100000000000001100010011",
+        "00000000100000000000111000110011",
+        "00000000000111100111111010010011",
+        "00000000000111100101111000010011",
+        "00000000011111101001111010010011",
+        "00000001110111100110111000110011",
+        "00000001110001000001010001100011",
+        "00000000000101001000010010010011",
+        "00000000000100101000001010010011",
+        "11111110011000101001001011100011"};
 
     Registers *Regs = new Registers();
     DataMemory *Memory = new DataMemory();
@@ -414,6 +428,7 @@ string Utility::AluUnit(int AluSelect, string RS1, string RS2)
     int a = ((RS1.length() > 0) ? signExtend(RS1) : 0);
     int b = ((RS2.length() > 0) ? signExtend(RS2) : 0);
     int res = 0;
+    // cout << a << " " << b << " " << AluSelect << endl;
     switch (AluSelect)
     {
     case 1:
@@ -454,6 +469,8 @@ string Utility::AluUnit(int AluSelect, string RS1, string RS2)
     case 8:
     { // SRA (check)
         res = a >> b;
+        // cout << "Before: " << a << endl;
+        // cout << "Shift Right: " << res << endl;
         break;
     }
     case 9:
@@ -739,6 +756,7 @@ void Pipeline::Ins_Exe(_IFID *IFID, _IDEX *IDEX, _EXMO *EXMO, _PC *PC, int &Ins_
     }
     else if (IDEX->CW.substr(0, 3) == "101")
     {
+        // cout <<  __LINE__ << " " << IDEX->IMM_Reg << endl;
         int val = Utility::signExtend(IDEX->IMM_Reg);
         val = val << 12;
         string val_str = bitset<32>(val).to_string();

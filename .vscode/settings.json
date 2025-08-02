@@ -5,6 +5,7 @@
         "string": "cpp",
         "bitset": "cpp",
         "future": "cpp",
-        "ostream": "cpp"
+        "ostream": "cpp",
+        "cmath": "cpp"
     }
 }
